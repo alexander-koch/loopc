@@ -1,0 +1,9 @@
+
+Program = Loop | Assignment | Program ";" Program ;
+Loop = "loop" Identifier "do" Program "end" ;
+Assignment = Identifier ":=" Identifier "+" Constant
+           | Identifier ":=" Identifier "-" Constant
+           | Identifier ":=" Identifier
+           | Identifier ":=" Identifier "+" Identifier
+           | Identifier ":=" Identifier "-" Identifier
+           ;
