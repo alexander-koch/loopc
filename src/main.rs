@@ -11,8 +11,10 @@ use lexer::Lexer;
 use parser::Parser;
 
 fn main() {
+    env_logger::init();
+
     let path = "main.loop";
-    println!("Compiling {}...", path);
+    debug!("Compiling {}...", path);
 
     // Read the file
     let mut file = File::open(path).unwrap();
@@ -23,7 +25,7 @@ fn main() {
     let mut lexer = Lexer::new(&content);
     let tokens = lexer.run();
     if let Ok(token_vec) = tokens {
-        println!("{:?}", token_vec);
+        debug!("{:?}", token_vec);
 
         let mut parser = Parser::new(token_vec.into_iter());
         let ast = parser.parse_program();

@@ -1,8 +1,8 @@
 [package]
 name = "loopc"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Alexander Koch <kochalexander@gmx.net>"]
 
 [dependencies]
 log = "0.4"
-env_logger = "0.4"
+env_logger = "0.5"

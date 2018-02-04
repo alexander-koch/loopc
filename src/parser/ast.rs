@@ -6,8 +6,9 @@ pub struct Program {
     pub kind: ProgramKind
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BinaryOperator {
+    Nop,
     Plus,
     Minus
 }

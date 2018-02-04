@@ -57,10 +57,6 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         })
     }
 
-    fn is_not_of(&mut self, t: TokenType) -> bool {
-        self.current.typ != t && self.current.typ != TokenType::Eof
-    }
-
     /// Peeks one token ahead and returns the found type.
     /// If there is no next token, EOF is returned.
     fn peek_type(&mut self) -> TokenType {
@@ -75,6 +71,18 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             let msg = format!("Unexpected token `{:?}`, expected: `{:?}`",
                               self.current.typ,
                               t);
+            Err(self.err(msg.as_str()))
+        }
+    }
+
+    fn expect_one_of_types(&mut self, tv: Vec<TokenType>) -> ParsingResult<()> {
+        if tv.contains(&self.current.typ) {
+            self.bump();
+            Ok(())
+        } else {
+            let msg = format!("Unexpected token `{:?}`, expected one of: `{:?}`",
+                              self.current.typ,
+                              tv);
             Err(self.err(msg.as_str()))
         }
     }
@@ -96,6 +104,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         })
     }
 
+
     pub fn parse_assignment(&mut self) -> ParsingResult<ast::Program> {
         trace!("Parsing: assignment");
         let position = self.current.position;
@@ -103,22 +112,31 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         try!(self.expect_type(TokenType::Identifier));
         try!(self.expect_type(TokenType::Assignment));
 
-        let ident = self.get_current_value();
-        try!(self.expect_type(TokenType::Identifier));
+        let lhs = self.get_current_value();
+        try!(self.expect_one_of_types(vec![TokenType::Identifier, TokenType::Constant]));
 
         let operator = match self.current.typ {
             TokenType::Plus => ast::BinaryOperator::Plus,
             TokenType::Minus => ast::BinaryOperator::Minus,
+            TokenType::Eof | TokenType::Semicolon => {
+                return Ok(ast::Program {
+                    position: position,
+                    kind: ast::ProgramKind::Assignment(assignee,
+                            lhs,
+                            ast::BinaryOperator::Nop,
+                            "".to_owned())
+                })
+            }
             _ => return Err(self.err("Invalid operator"))
         };
         self.bump();
 
-        let constant = self.get_current_value();
-        try!(self.expect_type(TokenType::Constant));
+        let rhs = self.get_current_value();
+        try!(self.expect_one_of_types(vec![TokenType::Identifier, TokenType::Constant]));
 
         Ok(ast::Program {
             position: position,
-            kind: ast::ProgramKind::Assignment(assignee, ident, operator, constant)
+            kind: ast::ProgramKind::Assignment(assignee, lhs, operator, rhs)
         })
     }
 

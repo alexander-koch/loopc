@@ -1,9 +1,10 @@
-
-Program = Loop | Assignment | Program ";" Program ;
-Loop = "loop" Identifier "do" Program "end" ;
-Assignment = Identifier ":=" Identifier "+" Constant
-           | Identifier ":=" Identifier "-" Constant
+Program = Assignment | Loop | Program ";" Program ;
+Assignment = Identifier ":=" Identifier Operator Constant
            | Identifier ":=" Identifier
-           | Identifier ":=" Identifier "+" Identifier
-           | Identifier ":=" Identifier "-" Identifier
+           | Identifier ":=" Constant
+           | Identifier ":=" Identifier Operator Identifier
+           | Identifier ":=" Constant Operator Constant
            ;
+
+Loop = "loop" Identifier "do" Program "end" ;
+Operator = "+" | "-" ;
