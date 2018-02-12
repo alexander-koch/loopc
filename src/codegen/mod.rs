@@ -1,3 +1,5 @@
+//! LLVM code generation
+// Copyright (c) Alexander Koch 2018
 #[macro_use]
 pub mod macros;
 pub mod llvm;

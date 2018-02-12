@@ -34,14 +34,6 @@ macro_rules! finalizer {
     )
 }
 
-macro_rules! gep_index {
-    ($ctx:expr, $x:expr) => (
-        $x.iter()
-            .map(|x| llvm::const_int($ctx.int32_ty(), *x, false))
-            .collect::<Vec<_>>();
-    )
-}
-
 macro_rules! unary_op {
     ($name:ident, $func:ident) => (
         pub fn $name(&mut self, val: LLVMValueRef) -> LLVMValueRef {

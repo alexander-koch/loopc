@@ -1,6 +1,6 @@
 //! Lexical analysis.
 //! Generates tokens based on an input file.
-// Copyright (c) Alexander Koch 2017
+// Copyright (c) Alexander Koch 2018
 use std::fmt;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -344,4 +344,38 @@ impl<'a> Lexer<'a> {
 /// Helper functions to get a character at a certain position
 fn get_char(s: &str, byte: usize) -> char {
     s[byte..].chars().next().unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn evaluate(input: &str) -> Vec<Token> {
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.run();
+        assert!(tokens.is_ok());
+        tokens.unwrap()
+    }
+
+    #[test]
+    fn test_keywords() {
+        let input = "loop do end";
+        let tokens = evaluate(input);
+        assert_eq!(tokens, vec![
+            Token {
+                typ: TokenType::Keyword(Keyword::Loop),
+                value: None,
+                position: Position::new(1, 1)
+            },
+            Token {
+                typ: TokenType::Keyword(Keyword::Do),
+                value: None,
+                position: Position::new(1, 6)
+            },
+            Token {
+                typ: TokenType::Keyword(Keyword::End),
+                value: None,
+                position: Position::new(1, 9)
+            }])
+    }
 }

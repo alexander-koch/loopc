@@ -1,6 +1,6 @@
 //! Syntax analysis.
 //! Generates an abstract syntax tree based on a vector of tokens.
-// Copyright (c) Alexander Koch 2017
+// Copyright (c) Alexander Koch 2018
 use std::iter::Peekable;
 use lexer::{Token, TokenType, Position, Keyword, Error};
 
@@ -57,12 +57,6 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         })
     }
 
-    /// Peeks one token ahead and returns the found type.
-    /// If there is no next token, EOF is returned.
-    fn peek_type(&mut self) -> TokenType {
-        self.tokens.peek().map(|x| x.typ).unwrap_or(TokenType::Eof)
-    }
-
     fn expect_type(&mut self, t: TokenType) -> ParsingResult<()> {
         if self.current.typ == t {
             self.bump();
@@ -88,7 +82,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     pub fn parse_loop(&mut self) -> ParsingResult<ast::Program> {
-        trace!("Parsing: loop");
+        debug!("Parsing: loop");
         let position = self.current.position;
         try!(self.expect_type(TokenType::Keyword(Keyword::Loop)));
 
@@ -106,7 +100,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
 
     pub fn parse_assignment(&mut self) -> ParsingResult<ast::Program> {
-        trace!("Parsing: assignment");
+        debug!("Parsing: assignment");
         let position = self.current.position;
         let assignee = self.get_current_value();
         try!(self.expect_type(TokenType::Identifier));
@@ -140,7 +134,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     pub fn parse_program(&mut self) -> ParsingResult<ast::Program> {
-        trace!("Parsing: program");
+        debug!("Parsing: program");
         let position = self.current.position;
         let program = match self.current.typ {
             TokenType::Keyword(Keyword::Loop) => self.parse_loop(),

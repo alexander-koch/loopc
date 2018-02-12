@@ -1,3 +1,5 @@
+//! Loop compiler
+// Copyright (c) Alexander Koch 2018
 #[macro_use]
 extern crate log;
 extern crate env_logger;
@@ -13,7 +15,6 @@ pub mod codegen;
 use lexer::{Lexer, Position, Error};
 use parser::Parser;
 use codegen::Codegen;
-use codegen::llvm::Module;
 use codegen::*;
 
 fn evaluate(path: String) -> Result<(), Error> {
@@ -50,9 +51,12 @@ fn evaluate(path: String) -> Result<(), Error> {
             message: x.into_string().unwrap()
         }));
 
+    // Print out the source code
+    debug!("{}", module.to_cstring().into_string().unwrap());
+
     // Run the module
     if let Some(val) = engine.run() {
-        println!("Result: {}", llvm::generic_value_to_int(val));
+        println!("{}", llvm::generic_value_to_int(val));
     }
 
     try!(engine.remove_module(&mut module)
@@ -60,9 +64,6 @@ fn evaluate(path: String) -> Result<(), Error> {
             position: Position::new(0,0),
             message: x.into_string().unwrap()
         }));
-
-    // Print out the source code
-    println!("{}", module.to_cstring().into_string().unwrap());
     Ok(())
 }
 
