@@ -174,7 +174,7 @@ impl<'a> Lexer<'a> {
     fn is_punctuation(&mut self) -> bool {
         self.current
             .map(|c| match c {
-                '+' | '-' | ':' | ';' => true,
+                '+' | '-' | ':' | ';' | '/' => true,
                 _ => false,
             })
             .unwrap_or(false)

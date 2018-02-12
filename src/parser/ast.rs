@@ -15,11 +15,11 @@ pub enum BinaryOperator {
 
 #[derive(Debug, Clone)]
 pub enum ProgramKind {
-    // loop x1 do p1 end
-    Loop(String, Box<Program>),
-
     // ident1 := ident2 <op> constant
     Assignment(String, String, BinaryOperator, String),
+
+    // loop x1 do p1 end
+    Loop(String, Box<Program>),
 
     // p1;p2
     Chain(Box<Program>, Box<Program>)

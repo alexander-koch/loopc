@@ -118,7 +118,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let operator = match self.current.typ {
             TokenType::Plus => ast::BinaryOperator::Plus,
             TokenType::Minus => ast::BinaryOperator::Minus,
-            TokenType::Eof | TokenType::Semicolon => {
+            _ => {
                 return Ok(ast::Program {
                     position: position,
                     kind: ast::ProgramKind::Assignment(assignee,
@@ -127,7 +127,6 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                             "".to_owned())
                 })
             }
-            _ => return Err(self.err("Invalid operator"))
         };
         self.bump();
 
