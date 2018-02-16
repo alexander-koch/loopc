@@ -1,0 +1,8 @@
+cur := 0;
+prv := 1;
+loop n do
+    tmp := cur;
+    cur := cur + prv;
+    prv := tmp
+end;
+x1 := cur

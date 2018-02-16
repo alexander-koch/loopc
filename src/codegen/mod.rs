@@ -13,6 +13,12 @@ use lexer::{Error, Position};
 pub type CodegenResult<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug, Clone)]
+pub struct ProgramConfig<'a> {
+    pub prelude: Option<ast::Program>,
+    pub output: &'a str
+}
+
+#[derive(Debug, Clone)]
 pub struct Codegen {
     ctx: llvm::Context,
     builder: llvm::Builder,
@@ -30,14 +36,20 @@ impl Codegen {
         }
     }
 
-    pub fn compile(&mut self, name: String, program: &ast::Program) -> CodegenResult<llvm::Module> {
+    pub fn compile(&mut self, name: &str, config: &ProgramConfig, program: &ast::Program) -> CodegenResult<llvm::Module> {
         let mut module = llvm::Module::new(&self.ctx, &name);
         let func = module.add_function("main", &mut vec![], self.ctx.int64_ty(), false);
         let block = self.ctx.append_basic_block(func, "entry");
         self.builder.position_at_end(block);
-        try!(self.codegen_program(&mut module, program));
 
-        let ret = if let Some(x) = self.named_values.get("x1") {
+        // Compile the 'prelude'
+        if let Some(ref p) = config.prelude {
+            try!(self.codegen_program(&mut module, p));
+        }
+
+        // Compile the main program and set the output variable
+        try!(self.codegen_program(&mut module, program));
+        let ret = if let Some(x) = self.named_values.get(config.output) {
             self.builder.build_load(*x)
         } else {
             llvm::const_int(self.ctx.int64_ty(), 0, false)
@@ -129,7 +141,7 @@ impl Codegen {
             },
             None => return Err(Error {
                 position: *position,
-                message: format!("Condition variable '{}' is uninitialized", condition)
+                message: format!("Conditional variable '{}' is uninitialized", condition)
             })
         }
         let zero = llvm::const_int(self.ctx.int64_ty(), 0, false);
