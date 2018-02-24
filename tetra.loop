@@ -1,0 +1,18 @@
+// Tetrahedral number
+i := 0;
+t := 0;
+n := n + 1;
+loop n do
+
+    // Triangular number
+    j := 1;
+    d := 0;
+    loop i do
+        d := d + j;
+        j := j + 1
+    end;
+
+    t := t + d;
+    i := i + 1
+end;
+x0 := t

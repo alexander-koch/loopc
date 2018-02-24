@@ -1,5 +1,5 @@
-x0 := 5;
-x1 := 2;
-loop x0 do
-    x1 := x1 + 1
+x1 := 5;
+x0 := 2;
+loop x1 do
+    x0 := x0 + 1
 end

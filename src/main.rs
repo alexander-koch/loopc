@@ -30,7 +30,7 @@ pub fn generate_ast(input: &str) -> Result<ast::Program, Error> {
 
     // Generate the AST
     let mut parser = Parser::new(tokens.into_iter());
-    parser.parse_program()
+    parser.parse()
 }
 
 fn evaluate(path: &str, config: &ProgramConfig) -> Result<(), Error> {
@@ -46,7 +46,7 @@ fn evaluate(path: &str, config: &ProgramConfig) -> Result<(), Error> {
 
     // Compile to LLVM code
     let mut codegen = Codegen::new();
-    let mut module = try!(codegen.compile(path, config, &ast));
+    let mut module = try!(codegen.compile(path, config, ast));
     try!(module.verify()
         .map_err(|x| Error {
             position: Position::new(0,0),
@@ -88,7 +88,7 @@ fn main() {
             .help("Sets the input file to use")
             .required(true))
         .arg(Arg::with_name("outvar")
-            .help("Sets the output variable (default is x1)")
+            .help("Sets the output variable (default is x0)")
             .required(false)
             .value_name("OUTVAR")
             .takes_value(true)
@@ -109,7 +109,7 @@ fn main() {
     let file = matches.value_of("FILE").unwrap();
     let config = ProgramConfig {
         prelude: prelude,
-        output: matches.value_of("outvar").unwrap_or("x1")
+        output: matches.value_of("outvar").unwrap_or("x0")
     };
 
     if let Err(e) = evaluate(file, &config) {

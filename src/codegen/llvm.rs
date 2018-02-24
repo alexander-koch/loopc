@@ -188,8 +188,20 @@ impl Builder {
     bin_op!(build_div, LLVMBuildSDiv, LLVMBuildFDiv);
     bin_op!(build_rem, LLVMBuildSRem, LLVMBuildFRem);
 
+    pub fn build_and(&mut self, lhs: LLVMValueRef, rhs: LLVMValueRef) -> LLVMValueRef {
+        unsafe { LLVMBuildAnd(self.into(), lhs, rhs, EMPTY_STR.as_ptr() as *const c_char) }
+    }
+
+    pub fn build_zext(&mut self, val: LLVMValueRef, dest_ty: LLVMTypeRef) -> LLVMValueRef {
+        unsafe { LLVMBuildZExt(self.into(), val, dest_ty, EMPTY_STR.as_ptr() as *const c_char) }
+    }
+
     pub fn build_add_nsw(&mut self, lhs: LLVMValueRef, rhs: LLVMValueRef) -> LLVMValueRef {
         unsafe { LLVMBuildNSWAdd(self.into(), lhs, rhs, EMPTY_STR.as_ptr() as *const c_char) }
+    }
+
+    pub fn build_sub_nsw(&mut self, lhs: LLVMValueRef, rhs: LLVMValueRef) -> LLVMValueRef {
+        unsafe { LLVMBuildNSWSub(self.into(), lhs, rhs, EMPTY_STR.as_ptr() as *const c_char) }
     }
 
     pub fn build_icmp(&mut self, op: LLVMIntPredicate, lhs: LLVMValueRef, rhs: LLVMValueRef) -> LLVMValueRef {

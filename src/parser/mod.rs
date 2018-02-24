@@ -155,4 +155,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
              _ => program
          }
     }
+
+    pub fn parse(&mut self) -> ParsingResult<ast::Program> {
+        debug!("Parsing");
+        let program = try!(self.parse_program());
+        try!(self.expect_type(TokenType::Eof));
+        Ok(program)
+    }
 }

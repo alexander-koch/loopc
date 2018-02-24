@@ -1,8 +1,7 @@
-cur := 0;
-prv := 1;
+f_curr := 1;
 loop n do
-    tmp := cur;
-    cur := cur + prv;
-    prv := tmp
+    tmp := f_curr;
+    f_curr := f_curr + f_prev;
+    f_prev := tmp
 end;
-x1 := cur
+x0 := f_curr
