@@ -7,7 +7,9 @@ use std::fmt;
 pub enum Keyword {
     Loop,
     Do,
-    End
+    End,
+    Div,
+    Mod
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -18,6 +20,7 @@ pub enum TokenType {
     Constant,
     Plus,
     Minus,
+    Multiply,
     Assignment,
     Semicolon,
     Keyword(Keyword),
@@ -174,7 +177,7 @@ impl<'a> Lexer<'a> {
     fn is_punctuation(&mut self) -> bool {
         self.current
             .map(|c| match c {
-                '+' | '-' | ':' | ';' | '/' => true,
+                '+' | '-' | '*' | ':' | ';' | '/' => true,
                 _ => false,
             })
             .unwrap_or(false)
@@ -253,6 +256,7 @@ impl<'a> Lexer<'a> {
             ';' => TokenType::Semicolon,
             '+' => TokenType::Plus,
             '-' => TokenType::Minus,
+            '*' => TokenType::Multiply,
             '/' => {
                 if self.curr_is('/') {
                     self.consume();
@@ -292,6 +296,8 @@ impl<'a> Lexer<'a> {
             "loop" => TokenType::Keyword(Keyword::Loop),
             "do" => TokenType::Keyword(Keyword::Do),
             "end" => TokenType::Keyword(Keyword::End),
+            "div" => TokenType::Keyword(Keyword::Div),
+            "mod" => TokenType::Keyword(Keyword::Mod),
             _ => TokenType::Identifier,
         };
 

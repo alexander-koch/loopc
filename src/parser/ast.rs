@@ -10,7 +10,10 @@ pub struct Program {
 pub enum BinaryOperator {
     Nop,
     Plus,
-    Minus
+    Minus,
+    Multiply,
+    Divide,
+    Modulo
 }
 
 #[derive(Debug, Clone)]

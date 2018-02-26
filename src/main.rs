@@ -22,14 +22,14 @@ use parser::*;
 use codegen::Codegen;
 use codegen::*;
 
-pub fn generate_ast(input: &str) -> Result<ast::Program, Error> {
+pub fn generate_ast(input: &str, strict: bool) -> Result<ast::Program, Error> {
     // Run the lexer
     let mut lexer = Lexer::new(input);
     let tokens = try!(lexer.run());
     debug!("{:?}", tokens);
 
     // Generate the AST
-    let mut parser = Parser::new(tokens.into_iter());
+    let mut parser = Parser::new(tokens.into_iter(), strict);
     parser.parse()
 }
 
@@ -41,7 +41,7 @@ fn evaluate(path: &str, config: &ProgramConfig) -> Result<(), Error> {
     let mut content = String::new();
     file.read_to_string(&mut content).unwrap();
 
-    let ast = try!(generate_ast(&content));
+    let ast = try!(generate_ast(&content, config.strict));
     debug!("{:?}", ast);
 
     // Compile to LLVM code
@@ -101,13 +101,22 @@ fn main() {
             .takes_value(true)
             .short("i")
             .long("input"))
+        .arg(Arg::with_name("strict")
+            .help("Enable strict mode")
+            .required(false)
+            .value_name("STRICT")
+            .takes_value(false)
+            .short("s")
+            .long("strict"))
         .get_matches();
 
+    let strict = matches.occurrences_of("strict") > 0;
     let prelude = matches.value_of("input")
-        .and_then(|x| generate_ast(x).ok());
+        .and_then(|x| generate_ast(x, strict).ok());
 
     let file = matches.value_of("FILE").unwrap();
     let config = ProgramConfig {
+        strict: strict,
         prelude: prelude,
         output: matches.value_of("outvar").unwrap_or("x0")
     };

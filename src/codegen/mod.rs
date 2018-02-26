@@ -13,6 +13,7 @@ pub type CodegenResult<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug, Clone)]
 pub struct ProgramConfig<'a> {
+    pub strict: bool,
     pub prelude: Option<ast::Program>,
     pub output: &'a str
 }
@@ -41,11 +42,11 @@ impl Codegen {
 
     pub fn collect_variables(&mut self, program: &ast::Program, set: &mut HashMap<String, bool>) {
         match program.kind {
-            ast::ProgramKind::Assignment(ref assignee, ref lhs, _, ref rhs) => {
+            ast::ProgramKind::Assignment(ref assignee, ref lhs, ref op, ref rhs) => {
                 if !is_constant(lhs) && !set.contains_key(lhs) {
                     set.insert(lhs.to_owned(), true);
                 }
-                if !is_constant(rhs) && !set.contains_key(rhs) {
+                if *op != ast::BinaryOperator::Nop && !is_constant(rhs) && !set.contains_key(rhs) {
                     set.insert(rhs.to_owned(), true);
                 }
                 if !set.contains_key(assignee) {
@@ -67,7 +68,7 @@ impl Codegen {
 
     pub fn allocate_variables(&mut self, program: &ast::Program) {
         let mut variables = HashMap::new();
-        self.collect_variables(program, &mut variables);
+        self.collect_variables(program, &mut variables);        
         debug!("Vars: {:?}", variables);
         for (variable, clear) in variables {
             let mem = self.builder.build_alloca(self.ctx.int64_ty());
@@ -167,6 +168,18 @@ impl Codegen {
                 let zext = self.builder.build_zext(cmp, self.ctx.int64_ty());
                 let neg = self.builder.build_sub_nsw(llvm::const_int(self.ctx.int64_ty(), 0, false), zext);
                 self.builder.build_and(res, neg)
+            },
+            ast::BinaryOperator::Multiply => {
+                let rhs = try!(self.codegen_value(position, rhs));
+                self.builder.build_mul(lhs, rhs, false)
+            },
+            ast::BinaryOperator::Divide => {
+                let rhs = try!(self.codegen_value(position, rhs));
+                self.builder.build_div(lhs, rhs, false)
+            },
+            ast::BinaryOperator::Modulo => {
+                let rhs = try!(self.codegen_value(position, rhs));
+                self.builder.build_rem(lhs, rhs, false)
             }
         };
         self.builder.build_store(expr, addr);

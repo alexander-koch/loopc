@@ -9,12 +9,13 @@ pub type ParsingResult<T> = ::std::result::Result<T, Error>;
 
 pub struct Parser<T: Iterator<Item = Token>> {
     tokens: Peekable<T>,
-    current: Token
+    current: Token,
+    strict: bool
 }
 
 impl<T: Iterator<Item = Token>> Parser<T> {
     /// Creates a new parser based on an iterator of tokens.
-    pub fn new(it: T) -> Parser<T> {
+    pub fn new(it: T, strict: bool) -> Parser<T> {
         let mut peek = it.peekable();
         let start = peek.next().unwrap_or(Token {
             typ: TokenType::Eof,
@@ -24,6 +25,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Parser {
             tokens: peek,
             current: start,
+            strict: strict
         }
     }
 
@@ -31,9 +33,9 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     ///
     /// # Arguments
     /// * `message` - Error message do display
-    fn err(&self, message: &str) -> Error {
+    fn err(&self, message: String) -> Error {
         Error {
-            message: message.into(),
+            message: message,
             position: self.current.position,
         }
     }
@@ -62,10 +64,9 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             self.bump();
             Ok(())
         } else {
-            let msg = format!("Unexpected token `{:?}`, expected: `{:?}`",
+            Err(self.err(format!("Unexpected token `{:?}`, expected: `{:?}`",
                               self.current.typ,
-                              t);
-            Err(self.err(msg.as_str()))
+                              t)))
         }
     }
 
@@ -74,10 +75,9 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             self.bump();
             Ok(())
         } else {
-            let msg = format!("Unexpected token `{:?}`, expected one of: `{:?}`",
+            Err(self.err(format!("Unexpected token `{:?}`, expected one of: `{:?}`",
                               self.current.typ,
-                              tv);
-            Err(self.err(msg.as_str()))
+                              tv)))
         }
     }
 
@@ -107,25 +107,62 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         try!(self.expect_type(TokenType::Assignment));
 
         let lhs = self.get_current_value();
-        try!(self.expect_one_of_types(vec![TokenType::Identifier, TokenType::Constant]));
+        if self.strict {
+            try!(self.expect_type(TokenType::Identifier));
+        } else {
+            try!(self.expect_one_of_types(vec![TokenType::Identifier, TokenType::Constant]));
+        }
 
         let operator = match self.current.typ {
             TokenType::Plus => ast::BinaryOperator::Plus,
             TokenType::Minus => ast::BinaryOperator::Minus,
+            TokenType::Multiply => {
+                if self.strict {
+                    return Err(self
+                        .err(format!("Built-in multiplication is not allowed in strict mode!")))
+                } else {
+                    ast::BinaryOperator::Multiply
+                }
+            },
+            TokenType::Keyword(Keyword::Div) => {
+                if self.strict {
+                    return Err(self
+                        .err(format!("Built-in division is not allowed in strict mode!")))
+                } else {
+                    ast::BinaryOperator::Divide
+                }
+            },
+            TokenType::Keyword(Keyword::Mod) => {
+                if self.strict {
+                    return Err(self
+                        .err(format!("Built-in modulo is not allowed in strict mode!")))
+                } else {
+                    ast::BinaryOperator::Modulo
+                }
+            },
             _ => {
-                return Ok(ast::Program {
-                    position: position,
-                    kind: ast::ProgramKind::Assignment(assignee,
-                            lhs,
-                            ast::BinaryOperator::Nop,
-                            "".to_owned())
-                })
+                if self.strict {
+                    return Err(self.err(format!("Operator is missing, found '{:?}' instead",
+                        self.current.typ)))
+                } else {
+                    return Ok(ast::Program {
+                        position: position,
+                        kind: ast::ProgramKind::Assignment(assignee,
+                                lhs,
+                                ast::BinaryOperator::Nop,
+                                "".to_owned())
+                    })
+                }
             }
         };
         self.bump();
 
         let rhs = self.get_current_value();
-        try!(self.expect_one_of_types(vec![TokenType::Identifier, TokenType::Constant]));
+        if self.strict {
+            try!(self.expect_type(TokenType::Constant));
+        } else {
+            try!(self.expect_one_of_types(vec![TokenType::Identifier, TokenType::Constant]));
+        }
 
         Ok(ast::Program {
             position: position,
@@ -139,7 +176,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let program = match self.current.typ {
             TokenType::Keyword(Keyword::Loop) => self.parse_loop(),
             TokenType::Identifier => self.parse_assignment(),
-            _ => return Err(self.err("Invalid program"))
+            _ => return Err(self.err("Invalid program".into()))
         };
 
         match self.current.typ {

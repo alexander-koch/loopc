@@ -186,7 +186,7 @@ impl Builder {
     bin_op!(build_sub, LLVMBuildSub, LLVMBuildFSub);
     bin_op!(build_mul, LLVMBuildMul, LLVMBuildFMul);
     bin_op!(build_div, LLVMBuildSDiv, LLVMBuildFDiv);
-    bin_op!(build_rem, LLVMBuildSRem, LLVMBuildFRem);
+    bin_op!(build_rem, LLVMBuildURem, LLVMBuildFRem);
 
     pub fn build_and(&mut self, lhs: LLVMValueRef, rhs: LLVMValueRef) -> LLVMValueRef {
         unsafe { LLVMBuildAnd(self.into(), lhs, rhs, EMPTY_STR.as_ptr() as *const c_char) }
