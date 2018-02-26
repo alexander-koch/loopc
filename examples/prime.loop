@@ -1,0 +1,23 @@
+upper := n - 1;
+upper := upper div 2;
+x := 2;
+
+// Check whether we are less or equal to two
+test := n - 2;
+result := 0;
+loop test do
+    result := 1
+end;
+
+loop upper do
+    tmp := n mod x;
+    cond := 1;
+    loop tmp do
+        cond := 0
+    end;
+    loop cond do
+        result := 0
+    end;
+    x := x + 1
+end;
+x0 := result

@@ -1,0 +1,10 @@
+// Calculates the x1-th fermat-number
+x0 := 1;
+x2 := 1;
+loop x1 do
+    x2 := x2 * 2
+end;
+loop x2 do
+    x0 := x0 * 2
+end;
+x0 := x0 + 1
