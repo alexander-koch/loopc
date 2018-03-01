@@ -40,7 +40,7 @@ impl Codegen {
         }
     }
 
-    pub fn collect_variables(&mut self, program: &ast::Program, set: &mut HashMap<String, bool>) {
+    pub fn collect_variables(&mut self, program: &ast::Program, nested: bool, set: &mut HashMap<String, bool>) {
         match program.kind {
             ast::ProgramKind::Assignment(ref assignee, ref lhs, ref op, ref rhs) => {
                 if !is_constant(lhs) && !set.contains_key(lhs) {
@@ -50,25 +50,25 @@ impl Codegen {
                     set.insert(rhs.to_owned(), true);
                 }
                 if !set.contains_key(assignee) {
-                    set.insert(assignee.to_owned(), false);
+                    set.insert(assignee.to_owned(), nested);
                 }
             },
             ast::ProgramKind::Loop(ref ident, ref p) => {
                 if !set.contains_key(ident) {
                     set.insert(ident.to_owned(), true);
                 }
-                self.collect_variables(p, set)
+                self.collect_variables(p, true, set)
             },
             ast::ProgramKind::Chain(ref p1, ref p2) => {
-                self.collect_variables(p1, set);
-                self.collect_variables(p2, set)
+                self.collect_variables(p1, nested, set);
+                self.collect_variables(p2, nested, set)
             }
         }
     }
 
     pub fn allocate_variables(&mut self, program: &ast::Program) {
         let mut variables = HashMap::new();
-        self.collect_variables(program, &mut variables);        
+        self.collect_variables(program, false, &mut variables);        
         debug!("Vars: {:?}", variables);
         for (variable, clear) in variables {
             let mem = self.builder.build_alloca(self.ctx.int64_ty());

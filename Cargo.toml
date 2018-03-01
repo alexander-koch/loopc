@@ -1,6 +1,6 @@
 [package]
 name = "loopc"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Alexander Koch <kochalexander@gmx.net>"]
 
 [dependencies]

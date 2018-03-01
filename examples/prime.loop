@@ -4,7 +4,6 @@ x := 2;
 
 // Check whether we are less or equal to two
 test := n - 2;
-result := 0;
 loop test do
     result := 1
 end;
