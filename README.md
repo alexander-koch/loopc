@@ -1,5 +1,7 @@
 # Loopc
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 This is a JIT compiler for the [LOOP programming language](https://en.wikipedia.org/wiki/LOOP_(programming_language)) written in Rust.
 
 ## Language
@@ -40,7 +42,7 @@ You can disable these extensions by setting the `--strict` flag.
 ## Compiling from source
 
 To compile the source code, a system-wide copy of LLVM must be found within the `PATH`.
-The version must be compatible with llvm-sys found in the local Cargo.toml file.
+The version must be compatible with llvm-sys found in the local [Cargo.toml](Cargo.toml) file.
 See https://crates.io/crates/llvm-sys for more info.
 
 If there is a compatible version, just type
@@ -55,4 +57,5 @@ Contributions are highly welcome!
 
 ## License
 
-Copyright(c) Alexander Koch 2018
+Copyright (C) 2018 Alexander Koch.
+Licensed under [GNU General Public License Version 3](LICENSE).
