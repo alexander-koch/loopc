@@ -29,7 +29,7 @@ pub type CodegenResult<T> = ::std::result::Result<T, Error>;
 pub struct ProgramConfig<'a> {
     pub strict: bool,
     pub prelude: Option<ast::Program>,
-    pub output: &'a str
+    pub output: &'a str,
 }
 
 #[derive(Debug, Clone)]
@@ -40,7 +40,11 @@ pub struct Codegen {
 }
 
 fn is_constant(value: &str) -> bool {
-    value.chars().next().map(|c| c.is_digit(10)).unwrap_or(false)
+    value
+        .chars()
+        .next()
+        .map(|c| c.is_digit(10))
+        .unwrap_or(false)
 }
 
 impl Codegen {
@@ -50,11 +54,18 @@ impl Codegen {
         Codegen {
             ctx: ctx,
             builder: builder,
-            named_values: HashMap::new()
+            named_values: HashMap::new(),
         }
     }
 
-    pub fn collect_variables(&mut self, program: &ast::Program, nested: bool, set: &mut HashMap<String, bool>) {
+    /// Collects every used variable
+    /// and marks if it needs to be cleared.
+    pub fn collect_variables(
+        &mut self,
+        program: &ast::Program,
+        nested: bool,
+        set: &mut HashMap<String, bool>,
+    ) {
         match program.kind {
             ast::ProgramKind::Assignment(ref assignee, ref lhs, ref op, ref rhs) => {
                 if !is_constant(lhs) && !set.contains_key(lhs) {
@@ -66,13 +77,13 @@ impl Codegen {
                 if !set.contains_key(assignee) {
                     set.insert(assignee.to_owned(), nested);
                 }
-            },
+            }
             ast::ProgramKind::Loop(ref ident, ref p) => {
                 if !set.contains_key(ident) {
                     set.insert(ident.to_owned(), true);
                 }
                 self.collect_variables(p, true, set)
-            },
+            }
             ast::ProgramKind::Chain(ref p1, ref p2) => {
                 self.collect_variables(p1, nested, set);
                 self.collect_variables(p2, nested, set)
@@ -80,9 +91,11 @@ impl Codegen {
         }
     }
 
+    /// Allocates space for every used variable in the program on the stack
+    /// and sets it to zero if needed.
     pub fn allocate_variables(&mut self, program: &ast::Program) {
         let mut variables = HashMap::new();
-        self.collect_variables(program, false, &mut variables);        
+        self.collect_variables(program, false, &mut variables);
         debug!("Vars: {:?}", variables);
         for (variable, clear) in variables {
             let mem = self.builder.build_alloca(self.ctx.int64_ty());
@@ -94,7 +107,12 @@ impl Codegen {
         }
     }
 
-    pub fn compile(&mut self, name: &str, config: &ProgramConfig, program: ast::Program) -> CodegenResult<llvm::Module> {
+    pub fn compile(
+        &mut self,
+        name: &str,
+        config: &ProgramConfig,
+        program: ast::Program,
+    ) -> CodegenResult<llvm::Module> {
         let mut module = llvm::Module::new(&self.ctx, &name);
         let func = module.add_function("main", &mut vec![], self.ctx.int64_ty(), false);
         let block = self.ctx.append_basic_block(func, "entry");
@@ -104,7 +122,7 @@ impl Codegen {
         let p = if let Some(ref p) = config.prelude {
             ast::Program {
                 position: Position::new(0, 0),
-                kind: ast::ProgramKind::Chain(Box::new(p.clone()), Box::new(program))
+                kind: ast::ProgramKind::Chain(Box::new(p.clone()), Box::new(program)),
             }
         } else {
             program
@@ -123,16 +141,20 @@ impl Codegen {
         Ok(module)
     }
 
-    fn codegen_program(&mut self, module: &mut llvm::Module, program: &ast::Program) -> CodegenResult<()> {
+    fn codegen_program(
+        &mut self,
+        module: &mut llvm::Module,
+        program: &ast::Program,
+    ) -> CodegenResult<()> {
         debug!("Codegen: program");
         let position = &program.position;
         match program.kind {
             ast::ProgramKind::Assignment(ref assignee, ref lhs, ref op, ref rhs) => {
                 self.codegen_assignment(position, assignee, lhs, op, rhs)
-            },
+            }
             ast::ProgramKind::Loop(ref ident, ref program) => {
                 self.codegen_loop(module, position, ident, program)
-            },
+            }
             ast::ProgramKind::Chain(ref p1, ref p2) => {
                 try!(self.codegen_program(module, &p1));
                 self.codegen_program(module, &p2)
@@ -140,16 +162,23 @@ impl Codegen {
         }
     }
 
-    fn get_variable_ref(&mut self, position: &Position, ident: &str) -> CodegenResult<LLVMValueRef> {
+    /// Retrieves the pointer to the space allocated by the variable on the stack
+    fn get_variable_ref(
+        &mut self,
+        position: &Position,
+        ident: &str,
+    ) -> CodegenResult<LLVMValueRef> {
         match self.named_values.get(ident) {
             Some(v) => Ok(*v),
             None => Err(Error {
                 position: *position,
-                message: format!("Variable '{}' is not defined", ident)
-            })
+                message: format!("Variable '{}' is not defined", ident),
+            }),
         }
     }
 
+    /// Tries to compile a value.
+    /// A value can either be a constant or an identifier.
     fn codegen_value(&mut self, position: &Position, value: &str) -> CodegenResult<LLVMValueRef> {
         if is_constant(value) {
             let v = value.parse::<i64>().unwrap();
@@ -160,12 +189,14 @@ impl Codegen {
         }
     }
 
-    fn codegen_assignment(&mut self,
-                    position: &Position,
-                    assignee: &str,
-                    lhs: &str,
-                    op: &ast::BinaryOperator,
-                    rhs: &str) -> CodegenResult<()> {
+    fn codegen_assignment(
+        &mut self,
+        position: &Position,
+        assignee: &str,
+        lhs: &str,
+        op: &ast::BinaryOperator,
+        rhs: &str,
+    ) -> CodegenResult<()> {
         debug!("Codegen: assignment");
         let addr = try!(self.get_variable_ref(position, assignee));
         let lhs = try!(self.codegen_value(position, lhs));
@@ -174,23 +205,29 @@ impl Codegen {
             ast::BinaryOperator::Plus => {
                 let rhs = try!(self.codegen_value(position, rhs));
                 self.builder.build_add(lhs, rhs, false)
-            },
+            }
             ast::BinaryOperator::Minus => {
+                // Saturated subtraction:
+                // unsigned int res = x - y;
+                // return res & 0-(res <= x);
+
                 let rhs = try!(self.codegen_value(position, rhs));
                 let res = self.builder.build_sub(lhs, rhs, false);
-                let cmp = self.builder.build_icmp(LLVMIntPredicate::LLVMIntULE, res, lhs);
+                let cmp = self.builder
+                    .build_icmp(LLVMIntPredicate::LLVMIntULE, res, lhs);
                 let zext = self.builder.build_zext(cmp, self.ctx.int64_ty());
-                let neg = self.builder.build_sub_nsw(llvm::const_int(self.ctx.int64_ty(), 0, false), zext);
+                let neg = self.builder
+                    .build_sub_nsw(llvm::const_int(self.ctx.int64_ty(), 0, false), zext);
                 self.builder.build_and(res, neg)
-            },
+            }
             ast::BinaryOperator::Multiply => {
                 let rhs = try!(self.codegen_value(position, rhs));
                 self.builder.build_mul(lhs, rhs, false)
-            },
+            }
             ast::BinaryOperator::Divide => {
                 let rhs = try!(self.codegen_value(position, rhs));
                 self.builder.build_div(lhs, rhs, false)
-            },
+            }
             ast::BinaryOperator::Modulo => {
                 let rhs = try!(self.codegen_value(position, rhs));
                 self.builder.build_rem(lhs, rhs, false)
@@ -200,11 +237,13 @@ impl Codegen {
         Ok(())
     }
 
-    fn codegen_loop(&mut self,
-                    module: &mut llvm::Module,
-                    position: &Position,
-                    condition: &str,
-                    program: &ast::Program) -> CodegenResult<()> {
+    fn codegen_loop(
+        &mut self,
+        module: &mut llvm::Module,
+        position: &Position,
+        condition: &str,
+        program: &ast::Program,
+    ) -> CodegenResult<()> {
         debug!("Codegen: loop");
         let counter = self.builder.build_alloca(self.ctx.int64_ty());
         let cond = try!(self.codegen_value(position, condition));
@@ -213,14 +252,17 @@ impl Codegen {
         let zero = llvm::const_int(self.ctx.int64_ty(), 0, false);
         let sub = llvm::const_int(self.ctx.int64_ty(), usize::max_value(), false);
         let cnt_idx0 = self.builder.build_load(counter);
-        let cmp0 = self.builder.build_icmp(LLVMIntPredicate::LLVMIntUGT, cnt_idx0, zero);
+        let cmp0 = self.builder
+            .build_icmp(LLVMIntPredicate::LLVMIntUGT, cnt_idx0, zero);
 
         let func = match module.get_function("main") {
             Some(f) => f,
-            None => return Err(Error {
-                position: *position,
-                message: "Main function is missing".into()
-            })
+            None => {
+                return Err(Error {
+                    position: *position,
+                    message: "Main function is missing".into(),
+                })
+            }
         };
 
         let then_block = self.ctx.append_basic_block(func, "L");
@@ -233,7 +275,8 @@ impl Codegen {
         let cnt_update = self.builder.build_add_nsw(cnt_idx1, sub);
         self.builder.build_store(cnt_update, counter);
 
-        let cmp1 = self.builder.build_icmp(LLVMIntPredicate::LLVMIntUGT, cnt_update, zero);
+        let cmp1 = self.builder
+            .build_icmp(LLVMIntPredicate::LLVMIntUGT, cnt_update, zero);
         self.builder.build_cond_br(cmp1, then_block, else_block);
 
         self.builder.position_at_end(else_block);

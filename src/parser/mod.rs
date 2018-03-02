@@ -16,7 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::iter::Peekable;
-use lexer::{Token, TokenType, Position, Keyword, Error};
+use lexer::{Error, Keyword, Position, Token, TokenType};
 
 pub mod ast;
 pub type ParsingResult<T> = ::std::result::Result<T, Error>;
@@ -24,7 +24,7 @@ pub type ParsingResult<T> = ::std::result::Result<T, Error>;
 pub struct Parser<T: Iterator<Item = Token>> {
     tokens: Peekable<T>,
     current: Token,
-    strict: bool
+    strict: bool,
 }
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -39,7 +39,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Parser {
             tokens: peek,
             current: start,
-            strict: strict
+            strict: strict,
         }
     }
 
@@ -78,9 +78,10 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             self.bump();
             Ok(())
         } else {
-            Err(self.err(format!("Unexpected token `{:?}`, expected: `{:?}`",
-                              self.current.typ,
-                              t)))
+            Err(self.err(format!(
+                "Unexpected token `{:?}`, expected: `{:?}`",
+                self.current.typ, t
+            )))
         }
     }
 
@@ -89,9 +90,10 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             self.bump();
             Ok(())
         } else {
-            Err(self.err(format!("Unexpected token `{:?}`, expected one of: `{:?}`",
-                              self.current.typ,
-                              tv)))
+            Err(self.err(format!(
+                "Unexpected token `{:?}`, expected one of: `{:?}`",
+                self.current.typ, tv
+            )))
         }
     }
 
@@ -108,10 +110,9 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         Ok(ast::Program {
             position: position,
-            kind: ast::ProgramKind::Loop(ident, Box::new(program))
+            kind: ast::ProgramKind::Loop(ident, Box::new(program)),
         })
     }
-
 
     pub fn parse_assignment(&mut self) -> ParsingResult<ast::Program> {
         debug!("Parsing: assignment");
@@ -132,40 +133,45 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             TokenType::Minus => ast::BinaryOperator::Minus,
             TokenType::Multiply => {
                 if self.strict {
-                    return Err(self
-                        .err(format!("Built-in multiplication is not allowed in strict mode!")))
+                    return Err(self.err(format!(
+                        "Built-in multiplication is not allowed in strict mode!"
+                    )));
                 } else {
                     ast::BinaryOperator::Multiply
                 }
-            },
+            }
             TokenType::Keyword(Keyword::Div) => {
                 if self.strict {
-                    return Err(self
-                        .err(format!("Built-in division is not allowed in strict mode!")))
+                    return Err(self.err(format!(
+                        "Built-in division is not allowed in strict mode!"
+                    )));
                 } else {
                     ast::BinaryOperator::Divide
                 }
-            },
+            }
             TokenType::Keyword(Keyword::Mod) => {
                 if self.strict {
-                    return Err(self
-                        .err(format!("Built-in modulo is not allowed in strict mode!")))
+                    return Err(self.err(format!("Built-in modulo is not allowed in strict mode!")));
                 } else {
                     ast::BinaryOperator::Modulo
                 }
-            },
+            }
             _ => {
                 if self.strict {
-                    return Err(self.err(format!("Operator is missing, found '{:?}' instead",
-                        self.current.typ)))
+                    return Err(self.err(format!(
+                        "Operator is missing, found '{:?}' instead",
+                        self.current.typ
+                    )));
                 } else {
                     return Ok(ast::Program {
                         position: position,
-                        kind: ast::ProgramKind::Assignment(assignee,
-                                lhs,
-                                ast::BinaryOperator::Nop,
-                                "".to_owned())
-                    })
+                        kind: ast::ProgramKind::Assignment(
+                            assignee,
+                            lhs,
+                            ast::BinaryOperator::Nop,
+                            "".to_owned(),
+                        ),
+                    });
                 }
             }
         };
@@ -180,7 +186,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         Ok(ast::Program {
             position: position,
-            kind: ast::ProgramKind::Assignment(assignee, lhs, operator, rhs)
+            kind: ast::ProgramKind::Assignment(assignee, lhs, operator, rhs),
         })
     }
 
@@ -190,21 +196,21 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let program = match self.current.typ {
             TokenType::Keyword(Keyword::Loop) => self.parse_loop(),
             TokenType::Identifier => self.parse_assignment(),
-            _ => return Err(self.err("Invalid program".into()))
+            _ => return Err(self.err("Invalid program".into())),
         };
 
         match self.current.typ {
-             TokenType::Semicolon => {
-                 self.bump();
-                 let p1 = try!(program);
-                 let p2 = try!(self.parse_program());
-                 Ok(ast::Program {
-                     position: position,
-                     kind: ast::ProgramKind::Chain(Box::new(p1), Box::new(p2))
-                 })
-             },
-             _ => program
-         }
+            TokenType::Semicolon => {
+                self.bump();
+                let p1 = try!(program);
+                let p2 = try!(self.parse_program());
+                Ok(ast::Program {
+                    position: position,
+                    kind: ast::ProgramKind::Chain(Box::new(p1), Box::new(p2)),
+                })
+            }
+            _ => program,
+        }
     }
 
     pub fn parse(&mut self) -> ParsingResult<ast::Program> {

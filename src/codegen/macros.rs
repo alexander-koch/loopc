@@ -56,7 +56,11 @@ macro_rules! unary_op {
     );
     ($name:ident, $ifunc:ident, $ffunc:ident) => (
         pub fn $name(&mut self, val: LLVMValueRef, float: bool) -> LLVMValueRef {
-            unsafe { (if float { $ffunc } else { $ifunc })(self.into(), val, EMPTY_STR.as_ptr() as *const c_char) }
+            unsafe {
+                (if float { $ffunc } else { $ifunc })(self.into(),
+                    val,
+                    EMPTY_STR.as_ptr() as *const c_char)
+            }
         }
     )
 }
@@ -70,7 +74,10 @@ macro_rules! bin_op {
     ($name:ident, $ifunc:ident, $ffunc:ident) => (
         pub fn $name(&self, lhs: LLVMValueRef, rhs: LLVMValueRef, float: bool) -> LLVMValueRef {
             unsafe {
-                (if float { $ffunc } else { $ifunc })(self.into(), lhs, rhs, EMPTY_STR.as_ptr() as *const c_char)
+                (if float { $ffunc } else { $ifunc })(self.into(),
+                    lhs,
+                    rhs,
+                    EMPTY_STR.as_ptr() as *const c_char)
             }
         }
     )

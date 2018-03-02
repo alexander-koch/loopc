@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+extern crate clap;
+extern crate env_logger;
+extern crate libc;
+extern crate llvm_sys;
 #[macro_use]
 extern crate log;
-extern crate env_logger;
-extern crate llvm_sys;
-extern crate libc;
-extern crate clap;
 
 const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
@@ -29,14 +29,13 @@ use std::io;
 use std::fmt;
 use std::error::Error;
 use std::ffi::CString;
-use clap::{Arg, App};
+use clap::{App, Arg};
 
 pub mod lexer;
 pub mod parser;
 pub mod codegen;
 use lexer::Lexer;
 use parser::Parser;
-use parser::*;
 use codegen::Codegen;
 use codegen::*;
 
@@ -44,7 +43,7 @@ use codegen::*;
 enum LoopError {
     SyntaxError(lexer::Error),
     IOError(io::Error),
-    LLVMError(String)
+    LLVMError(String),
 }
 
 impl From<lexer::Error> for LoopError {
@@ -63,7 +62,7 @@ impl From<CString> for LoopError {
     fn from(err: CString) -> LoopError {
         LoopError::LLVMError(match err.into_string() {
             Ok(s) => s,
-            Err(e) => e.description().into()
+            Err(e) => e.description().into(),
         })
     }
 }
@@ -73,12 +72,12 @@ impl fmt::Display for LoopError {
         match *self {
             LoopError::SyntaxError(ref x) => fmt::Display::fmt(x, f),
             LoopError::IOError(ref x) => fmt::Display::fmt(x, f),
-            LoopError::LLVMError(ref x) => fmt::Display::fmt(x, f)
+            LoopError::LLVMError(ref x) => fmt::Display::fmt(x, f),
         }
     }
 }
 
-fn generate_ast(input: &str, strict: bool) -> Result<ast::Program, lexer::Error> {
+fn generate_ast(input: &str, strict: bool) -> Result<parser::ast::Program, lexer::Error> {
     // Run the lexer
     let mut lexer = Lexer::new(input);
     let tokens = try!(lexer.run());
@@ -123,41 +122,50 @@ fn main() {
         .version(VERSION.unwrap_or("Unknown"))
         .author("Alexander Koch <kochalexander@gmx.net>")
         .about("Just-in-time compiler for LOOP programs")
-        .arg(Arg::with_name("FILE")
-            .help("Sets the input file to use")
-            .required(true))
-        .arg(Arg::with_name("outvar")
-            .help("Sets the output variable (default is x0)")
-            .required(false)
-            .value_name("OUTVAR")
-            .takes_value(true)
-            .short("o")
-            .long("output"))
-        .arg(Arg::with_name("input")
-            .help("Sets up a start-up program")
-            .required(false)
-            .value_name("INPUT")
-            .takes_value(true)
-            .short("i")
-            .long("input"))
-        .arg(Arg::with_name("strict")
-            .help("Enable strict mode")
-            .required(false)
-            .value_name("STRICT")
-            .takes_value(false)
-            .short("s")
-            .long("strict"))
+        .arg(
+            Arg::with_name("FILE")
+                .help("Sets the input file to use")
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("outvar")
+                .help("Sets the output variable (default is x0)")
+                .required(false)
+                .value_name("OUTVAR")
+                .takes_value(true)
+                .short("o")
+                .long("output"),
+        )
+        .arg(
+            Arg::with_name("input")
+                .help("Sets up a start-up program")
+                .required(false)
+                .value_name("INPUT")
+                .takes_value(true)
+                .short("i")
+                .long("input"),
+        )
+        .arg(
+            Arg::with_name("strict")
+                .help("Enable strict mode")
+                .required(false)
+                .value_name("STRICT")
+                .takes_value(false)
+                .short("s")
+                .long("strict"),
+        )
         .get_matches();
 
     let strict = matches.occurrences_of("strict") > 0;
-    let prelude = matches.value_of("input")
+    let prelude = matches
+        .value_of("input")
         .and_then(|x| generate_ast(x, strict).ok());
 
     let file = matches.value_of("FILE").unwrap();
     let config = ProgramConfig {
         strict: strict,
         prelude: prelude,
-        output: matches.value_of("outvar").unwrap_or("x0")
+        output: matches.value_of("outvar").unwrap_or("x0"),
     };
 
     if let Err(e) = evaluate(file, &config) {

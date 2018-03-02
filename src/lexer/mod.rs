@@ -23,7 +23,7 @@ pub enum Keyword {
     Do,
     End,
     Div,
-    Mod
+    Mod,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -176,16 +176,11 @@ impl<'a> Lexer<'a> {
 
     /// Tests if the current character is a whitespace
     fn is_space(&mut self) -> bool {
-        match self.current {
-            Some(v) => v.is_whitespace(),
-            None => false,
-        }
+        self.current.map(|x| x.is_whitespace()).unwrap_or(false)
     }
 
     fn is_constant(&mut self) -> bool {
-        self.current
-            .map(|v| v.is_digit(10))
-            .unwrap_or(false)
+        self.current.map(|v| v.is_digit(10)).unwrap_or(false)
     }
 
     fn is_punctuation(&mut self) -> bool {
@@ -278,7 +273,7 @@ impl<'a> Lexer<'a> {
                 } else {
                     return Err(self.err("Invalid token", position));
                 }
-            },
+            }
             ':' => {
                 if self.curr_is('=') {
                     self.consume();
@@ -286,7 +281,7 @@ impl<'a> Lexer<'a> {
                 } else {
                     return Err(self.err("Invalid token", position));
                 }
-            },
+            }
             _ => return Err(self.err("Unknown punctuation", position)),
         };
 
@@ -381,21 +376,25 @@ mod tests {
     fn test_keywords() {
         let input = "loop do end";
         let tokens = evaluate(input);
-        assert_eq!(tokens, vec![
-            Token {
-                typ: TokenType::Keyword(Keyword::Loop),
-                value: None,
-                position: Position::new(1, 1)
-            },
-            Token {
-                typ: TokenType::Keyword(Keyword::Do),
-                value: None,
-                position: Position::new(1, 6)
-            },
-            Token {
-                typ: TokenType::Keyword(Keyword::End),
-                value: None,
-                position: Position::new(1, 9)
-            }])
+        assert_eq!(
+            tokens,
+            vec![
+                Token {
+                    typ: TokenType::Keyword(Keyword::Loop),
+                    value: None,
+                    position: Position::new(1, 1),
+                },
+                Token {
+                    typ: TokenType::Keyword(Keyword::Do),
+                    value: None,
+                    position: Position::new(1, 6),
+                },
+                Token {
+                    typ: TokenType::Keyword(Keyword::End),
+                    value: None,
+                    position: Position::new(1, 9),
+                },
+            ]
+        )
     }
 }

@@ -19,7 +19,7 @@ use lexer::Position;
 #[derive(Debug, Clone)]
 pub struct Program {
     pub position: Position,
-    pub kind: ProgramKind
+    pub kind: ProgramKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,7 +29,7 @@ pub enum BinaryOperator {
     Minus,
     Multiply,
     Divide,
-    Modulo
+    Modulo,
 }
 
 #[derive(Debug, Clone)]
@@ -41,5 +41,5 @@ pub enum ProgramKind {
     Loop(String, Box<Program>),
 
     // p1;p2
-    Chain(Box<Program>, Box<Program>)
+    Chain(Box<Program>, Box<Program>),
 }
