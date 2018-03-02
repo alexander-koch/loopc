@@ -25,18 +25,60 @@ const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
 use std::fs::File;
 use std::io::Read;
+use std::io;
+use std::fmt;
+use std::error::Error;
+use std::ffi::CString;
 use clap::{Arg, App};
 
 pub mod lexer;
 pub mod parser;
 pub mod codegen;
-use lexer::{Lexer, Position, Error};
+use lexer::Lexer;
 use parser::Parser;
 use parser::*;
 use codegen::Codegen;
 use codegen::*;
 
-pub fn generate_ast(input: &str, strict: bool) -> Result<ast::Program, Error> {
+#[derive(Debug)]
+enum LoopError {
+    SyntaxError(lexer::Error),
+    IOError(io::Error),
+    LLVMError(String)
+}
+
+impl From<lexer::Error> for LoopError {
+    fn from(err: lexer::Error) -> LoopError {
+        LoopError::SyntaxError(err)
+    }
+}
+
+impl From<io::Error> for LoopError {
+    fn from(err: io::Error) -> LoopError {
+        LoopError::IOError(err)
+    }
+}
+
+impl From<CString> for LoopError {
+    fn from(err: CString) -> LoopError {
+        LoopError::LLVMError(match err.into_string() {
+            Ok(s) => s,
+            Err(e) => e.description().into()
+        })
+    }
+}
+
+impl fmt::Display for LoopError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            LoopError::SyntaxError(ref x) => fmt::Display::fmt(x, f),
+            LoopError::IOError(ref x) => fmt::Display::fmt(x, f),
+            LoopError::LLVMError(ref x) => fmt::Display::fmt(x, f)
+        }
+    }
+}
+
+fn generate_ast(input: &str, strict: bool) -> Result<ast::Program, lexer::Error> {
     // Run the lexer
     let mut lexer = Lexer::new(input);
     let tokens = try!(lexer.run());
@@ -47,46 +89,29 @@ pub fn generate_ast(input: &str, strict: bool) -> Result<ast::Program, Error> {
     parser.parse()
 }
 
-fn evaluate(path: &str, config: &ProgramConfig) -> Result<(), Error> {
+fn evaluate(path: &str, config: &ProgramConfig) -> Result<(), LoopError> {
     debug!("Compiling {}...", path);
 
     // Read the file
-    let mut file = File::open(path).unwrap();
+    let mut file = File::open(path)?;
     let mut content = String::new();
-    file.read_to_string(&mut content).unwrap();
+    try!(file.read_to_string(&mut content));
 
-    let ast = try!(generate_ast(&content, config.strict));
+    let ast = generate_ast(&content, config.strict)?;
     debug!("{:?}", ast);
 
     // Compile to LLVM code
     let mut codegen = Codegen::new();
-    let mut module = try!(codegen.compile(path, config, ast));
-    try!(module.verify()
-        .map_err(|x| Error {
-            position: Position::new(0,0),
-            message: x.into_string().unwrap()
-        }));
+    let mut module = codegen.compile(path, config, ast)?;
+    try!(module.verify());
 
-    // Create an execution engine
-    let mut engine = try!(module.create_execution_engine()
-            .map_err(|x| Error {
-            position: Position::new(0,0),
-            message: x.into_string().unwrap()
-        }));
-
-    // Print out the source code
-    debug!("{}", module.to_cstring().into_string().unwrap());
-
-    // Run the module
+    // Create an execution engine and run the module
+    let mut engine = module.create_execution_engine()?;
     if let Some(val) = engine.run() {
         println!("{}", llvm::generic_value_to_int(val));
     }
 
-    try!(engine.remove_module(&mut module)
-            .map_err(|x| Error {
-            position: Position::new(0,0),
-            message: x.into_string().unwrap()
-        }));
+    try!(engine.remove_module(&mut module));
     Ok(())
 }
 
@@ -97,7 +122,7 @@ fn main() {
     let matches = App::new("loopc")
         .version(VERSION.unwrap_or("Unknown"))
         .author("Alexander Koch <kochalexander@gmx.net>")
-        .about("Just-in-time compiler for loop programs")
+        .about("Just-in-time compiler for LOOP programs")
         .arg(Arg::with_name("FILE")
             .help("Sets the input file to use")
             .required(true))
