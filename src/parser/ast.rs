@@ -16,7 +16,7 @@
 
 use lexer::Position;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program {
     pub position: Position,
     pub kind: ProgramKind,
@@ -32,7 +32,7 @@ pub enum BinaryOperator {
     Modulo,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProgramKind {
     // ident1 := ident2 <op> constant
     Assignment(String, String, BinaryOperator, String),

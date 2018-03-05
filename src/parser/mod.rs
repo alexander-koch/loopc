@@ -220,3 +220,59 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Ok(program)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lexer::Lexer;
+
+    fn evaluate(input: &str, strict: bool) -> ast::Program {
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.run();
+        assert!(tokens.is_ok());
+
+        let mut parser = Parser::new(tokens.unwrap().into_iter(), strict);
+        let ast = parser.parse();
+        assert!(ast.is_ok());
+        ast.unwrap()
+    }
+
+    #[test]
+    fn test_double() {
+        let input = "x0 := x1 + 5;\nloop x0 do\n\tx0 := x0 + 1\nend\n";
+        let ast = evaluate(input, true);
+
+        let p1 = ast::Program {
+            position: Position::new(1, 1),
+            kind: ast::ProgramKind::Assignment(
+                "x0".into(),
+                "x1".into(),
+                ast::BinaryOperator::Plus,
+                "5".into(),
+            ),
+        };
+
+        let sub = ast::Program {
+            position: Position::new(3, 2),
+            kind: ast::ProgramKind::Assignment(
+                "x0".into(),
+                "x0".into(),
+                ast::BinaryOperator::Plus,
+                "1".into(),
+            ),
+        };
+
+        let p2 = ast::Program {
+            position: Position::new(2, 1),
+            kind: ast::ProgramKind::Loop("x0".into(), Box::new(sub)),
+        };
+
+        assert_eq!(
+            ast,
+            ast::Program {
+                position: Position::new(1, 1),
+                kind: ast::ProgramKind::Chain(Box::new(p1), Box::new(p2)),
+            }
+        );
+    }
+}

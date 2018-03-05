@@ -47,7 +47,7 @@ See https://crates.io/crates/llvm-sys for more info.
 
 If there is a compatible version, just type
 ```sh
-$ cargo build
+$ cargo install
 ```
 
 ## Contributing

@@ -117,7 +117,7 @@ dependencies = [
 
 [[package]]
 name = "loopc"
-version = "0.4.3"
+version = "0.4.4"
 dependencies = [
  "clap 2.29.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",

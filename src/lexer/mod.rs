@@ -193,17 +193,13 @@ impl<'a> Lexer<'a> {
     }
 
     fn is_identifier_beginning(&mut self) -> bool {
-        match self.current {
-            Some(c) => c.is_alphabetic(),
-            None => false,
-        }
+        self.current.map(|c| c.is_alphabetic()).unwrap_or(false)
     }
 
     fn is_identifier(&mut self) -> bool {
-        match self.current {
-            Some(c) => c.is_alphanumeric() || c == '_',
-            None => false,
-        }
+        self.current
+            .map(|c| c.is_alphanumeric() || c == '_')
+            .unwrap_or(false)
     }
 
     fn scan_comment(&mut self) -> LexicalResult<Token> {
@@ -374,7 +370,7 @@ mod tests {
 
     #[test]
     fn test_keywords() {
-        let input = "loop do end";
+        let input = "loop do end div mod";
         let tokens = evaluate(input);
         assert_eq!(
             tokens,
@@ -393,6 +389,83 @@ mod tests {
                     typ: TokenType::Keyword(Keyword::End),
                     value: None,
                     position: Position::new(1, 9),
+                },
+                Token {
+                    typ: TokenType::Keyword(Keyword::Div),
+                    value: None,
+                    position: Position::new(1, 13),
+                },
+                Token {
+                    typ: TokenType::Keyword(Keyword::Mod),
+                    value: None,
+                    position: Position::new(1, 17),
+                },
+            ]
+        )
+    }
+
+    #[test]
+    fn test_identifiers() {
+        let input = "x0 x_i current i";
+        let tokens = evaluate(input);
+        assert_eq!(
+            tokens,
+            vec![
+                Token {
+                    typ: TokenType::Identifier,
+                    value: Some("x0".into()),
+                    position: Position::new(1, 1),
+                },
+                Token {
+                    typ: TokenType::Identifier,
+                    value: Some("x_i".into()),
+                    position: Position::new(1, 4),
+                },
+                Token {
+                    typ: TokenType::Identifier,
+                    value: Some("current".into()),
+                    position: Position::new(1, 8),
+                },
+                Token {
+                    typ: TokenType::Identifier,
+                    value: Some("i".into()),
+                    position: Position::new(1, 16),
+                },
+            ]
+        )
+    }
+
+    #[test]
+    fn test_punctuation() {
+        let input = "+-*:=;";
+        let tokens = evaluate(input);
+        assert_eq!(
+            tokens,
+            vec![
+                Token {
+                    typ: TokenType::Plus,
+                    value: None,
+                    position: Position::new(1, 1),
+                },
+                Token {
+                    typ: TokenType::Minus,
+                    value: None,
+                    position: Position::new(1, 2),
+                },
+                Token {
+                    typ: TokenType::Multiply,
+                    value: None,
+                    position: Position::new(1, 3),
+                },
+                Token {
+                    typ: TokenType::Assignment,
+                    value: None,
+                    position: Position::new(1, 4),
+                },
+                Token {
+                    typ: TokenType::Semicolon,
+                    value: None,
+                    position: Position::new(1, 6),
                 },
             ]
         )

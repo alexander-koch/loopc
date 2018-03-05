@@ -1,6 +1,6 @@
 [package]
 name = "loopc"
-version = "0.4.3"
+version = "0.4.4"
 authors = ["Alexander Koch <kochalexander@gmx.net>"]
 keywords = ["loop", "compiler", "llvm"]
 description = "A JIT compiler for the LOOP programming language"
