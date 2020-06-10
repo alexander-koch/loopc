@@ -25,7 +25,7 @@ use libc::{c_char, c_double, c_uint, c_ulonglong};
 
 use std::ffi::{CStr, CString};
 use std::fmt;
-use std::mem;
+use std::ptr::null_mut;
 
 static EMPTY_STR: [c_char; 1] = [0];
 const LLVM_FALSE: LLVMBool = 0;
@@ -401,7 +401,7 @@ impl ExecutionEngine {
         let c_name = CString::new(name).unwrap();
         let function_name = c_name.to_bytes_with_nul().as_ptr() as *const c_char;
         unsafe {
-            let mut func: LLVMValueRef = mem::uninitialized();
+            let mut func: LLVMValueRef = null_mut();
             if LLVMFindFunction(self.into(), function_name, &mut func) == LLVM_FALSE {
                 Some(func)
             } else {
@@ -412,7 +412,7 @@ impl ExecutionEngine {
 
     pub fn remove_module(&mut self, module: &mut Module) -> Result<(), CString> {
         unsafe {
-            let mut error = mem::uninitialized();
+            let mut error = null_mut();
             if LLVMRemoveModule(self.into(), module.into(), &mut module.0, &mut error) == 1 {
                 let message = CStr::from_ptr(error).to_owned();
                 LLVMDisposeMessage(error);
@@ -427,7 +427,7 @@ impl ExecutionEngine {
         let main_func = self.get_function("main");
         if let Some(func) = main_func {
             unsafe {
-                let args = mem::uninitialized();
+                let args = null_mut();
                 Some(LLVMRunFunction(self.into(), func, 0, args))
             }
         } else {
@@ -479,7 +479,7 @@ impl Module {
 
     pub fn verify(&self) -> Result<(), CString> {
         unsafe {
-            let mut error = mem::uninitialized();
+            let mut error = null_mut();
             let action = LLVMVerifierFailureAction::LLVMReturnStatusAction;
             if LLVMVerifyModule(self.into(), action, &mut error) == 1 {
                 let message = CStr::from_ptr(error).to_owned();
@@ -493,8 +493,8 @@ impl Module {
 
     pub fn create_execution_engine(&self) -> Result<ExecutionEngine, CString> {
         unsafe {
-            let mut engine: LLVMExecutionEngineRef = mem::uninitialized();
-            let mut error = mem::uninitialized();
+            let mut engine: LLVMExecutionEngineRef = null_mut();
+            let mut error = null_mut();
             if LLVMCreateExecutionEngineForModule(&mut engine, self.into(), &mut error) == 1 {
                 let message = CStr::from_ptr(error).to_owned();
                 LLVMDisposeMessage(error);
@@ -510,7 +510,7 @@ impl Module {
         let c_filename = c_name.to_bytes_with_nul().as_ptr() as *mut c_char;
         unsafe {
             let file_type = LLVMCodeGenFileType::LLVMObjectFile;
-            let mut error = mem::uninitialized();
+            let mut error = null_mut();
             if LLVMTargetMachineEmitToFile(
                 target.into(),
                 self.into(),
@@ -554,8 +554,8 @@ impl TargetMachine {
 
             let triple = LLVMGetDefaultTargetTriple();
 
-            let mut target = mem::uninitialized();
-            let mut error = mem::uninitialized();
+            let mut target = null_mut();
+            let mut error = null_mut();
             if LLVMGetTargetFromTriple(triple, &mut target, &mut error) == 1 {
                 let message = CStr::from_ptr(error).to_owned();
                 LLVMDisposeMessage(error);

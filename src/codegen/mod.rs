@@ -130,7 +130,7 @@ impl Codegen {
 
         // Compile the main program and set the output variable
         self.allocate_variables(&p);
-        try!(self.codegen_program(&mut module, &p));
+        self.codegen_program(&mut module, &p)?;
         let ret = if let Some(x) = self.named_values.get(config.output) {
             self.builder.build_load(*x)
         } else {
@@ -156,7 +156,7 @@ impl Codegen {
                 self.codegen_loop(module, position, ident, program)
             }
             ast::ProgramKind::Chain(ref p1, ref p2) => {
-                try!(self.codegen_program(module, &p1));
+                self.codegen_program(module, &p1)?;
                 self.codegen_program(module, &p2)
             }
         }
@@ -184,7 +184,7 @@ impl Codegen {
             let v = value.parse::<i64>().unwrap();
             Ok(llvm::const_int(self.ctx.int64_ty(), v as usize, false))
         } else {
-            let val = try!(self.get_variable_ref(position, value));
+            let val = self.get_variable_ref(position, value)?;
             Ok(self.builder.build_load(val))
         }
     }
@@ -198,12 +198,12 @@ impl Codegen {
         rhs: &str,
     ) -> CodegenResult<()> {
         debug!("Codegen: assignment");
-        let addr = try!(self.get_variable_ref(position, assignee));
-        let lhs = try!(self.codegen_value(position, lhs));
+        let addr = self.get_variable_ref(position, assignee)?;
+        let lhs = self.codegen_value(position, lhs)?;
         let expr = match *op {
             ast::BinaryOperator::Nop => lhs,
             ast::BinaryOperator::Plus => {
-                let rhs = try!(self.codegen_value(position, rhs));
+                let rhs = self.codegen_value(position, rhs)?;
                 self.builder.build_add(lhs, rhs, false)
             }
             ast::BinaryOperator::Minus => {
@@ -211,7 +211,7 @@ impl Codegen {
                 // unsigned int res = x - y;
                 // return res & 0-(res <= x);
 
-                let rhs = try!(self.codegen_value(position, rhs));
+                let rhs = self.codegen_value(position, rhs)?;
                 let res = self.builder.build_sub(lhs, rhs, false);
                 let cmp = self.builder
                     .build_icmp(LLVMIntPredicate::LLVMIntULE, res, lhs);
@@ -221,15 +221,15 @@ impl Codegen {
                 self.builder.build_and(res, neg)
             }
             ast::BinaryOperator::Multiply => {
-                let rhs = try!(self.codegen_value(position, rhs));
+                let rhs = self.codegen_value(position, rhs)?;
                 self.builder.build_mul(lhs, rhs, false)
             }
             ast::BinaryOperator::Divide => {
-                let rhs = try!(self.codegen_value(position, rhs));
+                let rhs = self.codegen_value(position, rhs)?;
                 self.builder.build_div(lhs, rhs, false)
             }
             ast::BinaryOperator::Modulo => {
-                let rhs = try!(self.codegen_value(position, rhs));
+                let rhs = self.codegen_value(position, rhs)?;
                 self.builder.build_rem(lhs, rhs, false)
             }
         };
@@ -246,7 +246,7 @@ impl Codegen {
     ) -> CodegenResult<()> {
         debug!("Codegen: loop");
         let counter = self.builder.build_alloca(self.ctx.int64_ty());
-        let cond = try!(self.codegen_value(position, condition));
+        let cond = self.codegen_value(position, condition)?;
         self.builder.build_store(cond, counter);
 
         let zero = llvm::const_int(self.ctx.int64_ty(), 0, false);
@@ -270,7 +270,7 @@ impl Codegen {
         self.builder.build_cond_br(cmp0, then_block, else_block);
 
         self.builder.position_at_end(then_block);
-        try!(self.codegen_program(module, program));
+        self.codegen_program(module, program)?;
         let cnt_idx1 = self.builder.build_load(counter);
         let cnt_update = self.builder.build_add_nsw(cnt_idx1, sub);
         self.builder.build_store(cnt_update, counter);

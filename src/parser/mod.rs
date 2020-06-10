@@ -100,13 +100,13 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     pub fn parse_loop(&mut self) -> ParsingResult<ast::Program> {
         debug!("Parsing: loop");
         let position = self.current.position;
-        try!(self.expect_type(TokenType::Keyword(Keyword::Loop)));
+        self.expect_type(TokenType::Keyword(Keyword::Loop))?;
 
         let ident = self.get_current_value();
-        try!(self.expect_type(TokenType::Identifier));
-        try!(self.expect_type(TokenType::Keyword(Keyword::Do)));
-        let program = try!(self.parse_program());
-        try!(self.expect_type(TokenType::Keyword(Keyword::End)));
+        self.expect_type(TokenType::Identifier)?;
+        self.expect_type(TokenType::Keyword(Keyword::Do))?;
+        let program = self.parse_program()?;
+        self.expect_type(TokenType::Keyword(Keyword::End))?;
 
         Ok(ast::Program {
             position: position,
@@ -118,14 +118,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         debug!("Parsing: assignment");
         let position = self.current.position;
         let assignee = self.get_current_value();
-        try!(self.expect_type(TokenType::Identifier));
-        try!(self.expect_type(TokenType::Assignment));
+        self.expect_type(TokenType::Identifier)?;
+        self.expect_type(TokenType::Assignment)?;
 
         let lhs = self.get_current_value();
         if self.strict {
-            try!(self.expect_type(TokenType::Identifier));
+            self.expect_type(TokenType::Identifier)?;
         } else {
-            try!(self.expect_one_of_types(vec![TokenType::Identifier, TokenType::Constant]));
+            self.expect_one_of_types(vec![TokenType::Identifier, TokenType::Constant])?;
         }
 
         let operator = match self.current.typ {
@@ -179,9 +179,9 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         let rhs = self.get_current_value();
         if self.strict {
-            try!(self.expect_type(TokenType::Constant));
+            self.expect_type(TokenType::Constant)?;
         } else {
-            try!(self.expect_one_of_types(vec![TokenType::Identifier, TokenType::Constant]));
+            self.expect_one_of_types(vec![TokenType::Identifier, TokenType::Constant])?;
         }
 
         Ok(ast::Program {
@@ -202,8 +202,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         match self.current.typ {
             TokenType::Semicolon => {
                 self.bump();
-                let p1 = try!(program);
-                let p2 = try!(self.parse_program());
+                let p1 = program?;
+                let p2 = self.parse_program()?;
                 Ok(ast::Program {
                     position: position,
                     kind: ast::ProgramKind::Chain(Box::new(p1), Box::new(p2)),
@@ -215,8 +215,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
     pub fn parse(&mut self) -> ParsingResult<ast::Program> {
         debug!("Parsing");
-        let program = try!(self.parse_program());
-        try!(self.expect_type(TokenType::Eof));
+        let program = self.parse_program()?;
+        self.expect_type(TokenType::Eof)?;
         Ok(program)
     }
 }

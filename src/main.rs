@@ -27,7 +27,6 @@ use std::fs::File;
 use std::io::Read;
 use std::io;
 use std::fmt;
-use std::error::Error;
 use std::ffi::CString;
 use clap::{App, Arg};
 
@@ -62,7 +61,7 @@ impl From<CString> for LoopError {
     fn from(err: CString) -> LoopError {
         LoopError::LLVMError(match err.into_string() {
             Ok(s) => s,
-            Err(e) => e.description().into(),
+            Err(e) => e.to_string(),
         })
     }
 }
@@ -80,7 +79,7 @@ impl fmt::Display for LoopError {
 fn generate_ast(input: &str, strict: bool) -> Result<parser::ast::Program, lexer::Error> {
     // Run the lexer
     let mut lexer = Lexer::new(input);
-    let tokens = try!(lexer.run());
+    let tokens = lexer.run()?;
     debug!("{:?}", tokens);
 
     // Generate the AST
@@ -94,7 +93,7 @@ fn evaluate(path: &str, config: &ProgramConfig) -> Result<(), LoopError> {
     // Read the file
     let mut file = File::open(path)?;
     let mut content = String::new();
-    try!(file.read_to_string(&mut content));
+    file.read_to_string(&mut content)?;
 
     let ast = generate_ast(&content, config.strict)?;
     debug!("{:?}", ast);
@@ -102,7 +101,7 @@ fn evaluate(path: &str, config: &ProgramConfig) -> Result<(), LoopError> {
     // Compile to LLVM code
     let mut codegen = Codegen::new();
     let mut module = codegen.compile(path, config, ast)?;
-    try!(module.verify());
+    module.verify()?;
 
     // Create an execution engine and run the module
     let mut engine = module.create_execution_engine()?;
@@ -110,7 +109,7 @@ fn evaluate(path: &str, config: &ProgramConfig) -> Result<(), LoopError> {
         println!("{}", llvm::generic_value_to_int(val));
     }
 
-    try!(engine.remove_module(&mut module));
+    engine.remove_module(&mut module)?;
     Ok(())
 }
 

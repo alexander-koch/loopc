@@ -343,7 +343,7 @@ impl<'a> Lexer<'a> {
 
         // Read all the tokens
         while self.cursor < self.data.len() {
-            let token = try!(self.next_token());
+            let token = self.next_token()?;
             tokens.push(token);
         }
 
